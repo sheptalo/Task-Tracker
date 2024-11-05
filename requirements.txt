@@ -1,0 +1,7 @@
+Django
+djangorestframework
+djangorestframework-simplejwt
+channels
+psycopg2
+Pillow
+python-dotenv
