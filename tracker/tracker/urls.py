@@ -1,11 +1,14 @@
 from django.urls import path, include
 from rest_framework_simplejwt import views as jwt_views
 from rest_framework_simplejwt.views import TokenVerifyView
+from django.contrib import admin
+
 from django.conf.urls.static import static
 from . import settings
 
 
 urlpatterns = [
+    path("admin/", admin.site.urls),
     path(
         "api/v1/token/",
         jwt_views.TokenObtainPairView.as_view(),

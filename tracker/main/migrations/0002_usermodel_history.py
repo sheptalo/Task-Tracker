@@ -5,15 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('main', '0001_initial'),
+        ("main", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='usermodel',
-            name='history',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=50), blank=True, null=True, size=None),
+            model_name="UserModel",
+            name="history",
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.CharField(max_length=50),
+                blank=True,
+                null=True,
+                size=None,
+            ),
         ),
     ]

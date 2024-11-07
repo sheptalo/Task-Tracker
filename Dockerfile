@@ -3,8 +3,13 @@ LABEL authors="sinortax"
 
 WORKDIR /app
 
-COPY ./tracker .
+COPY ./requirements.txt .
+COPY ./.env .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["/bin/bash", "-c", "python manage.py runserver"]
+COPY ./tracker .
+
+EXPOSE 8000
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
