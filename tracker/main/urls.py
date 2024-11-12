@@ -4,16 +4,22 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 
-router.register(r"projects", views.ProjectsViewSet)
-router.register(r"users", views.UsersViewSet)
 router.register(r"user-project-role", views.UserProjectAssignmentViewSet)
-router.register(r"roles", views.RolesViewSet)
 router.register(r"tasks", views.TasksViewSet)
-router.register(r"task-status", views.TaskStatusViewSet)
-router.register(r"task-priority", views.TaskPriorityViewSet)
-router.register(r"comments", views.CommentsViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("register/", views.RegistrationAPIView.as_view()),
+    path("users/", views.users_view),
+    path("users/<int:pk>/", views.users_view_item),
+    path("register/", views.register_user),
+    path("task-status/", views.task_status),
+    path("task-status/<int:pk>/", views.task_status_item),
+    path("task-priority/", views.task_priority),
+    path("task-priority/<int:pk>/", views.task_priority_item),
+    path("roles/", views.user_roles),
+    path("roles/<int:pk>/", views.user_roles_item),
+    path("projects/", views.projects_view),
+    path("projects/<int:pk>/", views.projects_view_item),
+    path("comments/", views.comments_view),
+    path("comments/<int:pk>/", views.comments_view_item),
 ]

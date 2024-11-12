@@ -5,3 +5,5 @@ channels
 psycopg2
 Pillow
 python-dotenv
+asgiref
+drf-yasg

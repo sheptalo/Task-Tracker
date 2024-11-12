@@ -2,6 +2,20 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
+class Project(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status_choices = (("active", "Активен"), ("archived", "Архивирован"))
+    status = models.CharField(
+        max_length=10, choices=status_choices, default="active"
+    )
+
+    def __str__(self):
+        return self.title
+
+
 class UserModel(AbstractUser):
     avatar = models.ImageField(
         upload_to="avatars/",
@@ -17,15 +31,14 @@ class UserModel(AbstractUser):
         related_name="users",
         verbose_name="Роль",
     )
-    projects = models.ManyToManyField(
-        "Project",
-        related_name="projects",
-        verbose_name="Текущие проекты",
-        null=True,
-    )
+    projects = models.ManyToManyField(Project, through="UserProjectAssignment")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def group_name(self):
+        return "user_%s" % self.id
 
 
 class Role(models.Model):
@@ -33,22 +46,6 @@ class Role(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class Project(models.Model):
-    title = models.CharField(max_length=200)
-    description = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    status_choices = (("active", "Активен"), ("archived", "Архивирован"))
-    status = models.CharField(
-        max_length=10, choices=status_choices, default="active"
-    )
-
-    users = models.ManyToManyField(UserModel, through="UserProjectAssignment")
-
-    def __str__(self):
-        return self.title
 
 
 class UserProjectAssignment(models.Model):

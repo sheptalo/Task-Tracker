@@ -1,16 +1,19 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = (
-    "django-insecure-=x%a6c9eiwa@jz2ef$ovxm$08l$p#+9$$zny&46j^!8(d6kk0t"
-)
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -21,6 +24,8 @@ INSTALLED_APPS = [
     "main",
     "rest_framework_simplejwt",
     "channels",
+    "rest_framework_swagger",
+    "drf_yasg",
 ]
 
 MIDDLEWARE = [
@@ -62,10 +67,10 @@ WSGI_APPLICATION = "tracker.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": "tracker",
-        "USER": "postgres",
-        "PASSWORD": "12345678",
-        "HOST": "127.0.0.1",
+        "NAME": os.environ.get("DB_NAME"),
+        "USER": os.environ.get("DB_USER"),
+        "PASSWORD": os.environ.get("DB_PASSWORD"),
+        "HOST": os.environ.get("DB_HOST"),
         "PORT": "5432",
     }
 }
@@ -85,6 +90,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CHANNEL_LAYERS = {
+    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+}
+
 LANGUAGE_CODE = "ru"
 
 TIME_ZONE = "Europe/Moscow"
@@ -103,3 +112,5 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "main.UserModel"
+ASGI_APPLICATION = "tracker.asgi.application"
+APPEND_SLASH = False

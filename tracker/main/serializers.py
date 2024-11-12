@@ -45,16 +45,16 @@ class UserProjectAssignmentSerializer(serializers.ModelSerializer):
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
-        fields = "__all__"
+        fields = ["id", "name"]
 
 
 class TaskStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskStatus
-        fields = "__all__"
+        fields = ["id", "name"]
 
 
 class TaskPrioritySerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskPriority
-        fields = "__all__"
+        fields = ["id", "name"]
