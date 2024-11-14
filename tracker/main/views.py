@@ -1,4 +1,4 @@
-import os
+import logging
 
 from drf_yasg.utils import swagger_auto_schema
 
@@ -30,7 +30,14 @@ from .models import (
     TaskPriority,
     Role,
 )
-from .utils import send_websocket
+from .utils import (
+    send_websocket,
+    filter_get_params,
+    order_query,
+    send_email,
+    date_filter,
+)
+from tracker import docs
 
 load_dotenv()
 
@@ -39,8 +46,7 @@ load_dotenv()
 def users_view(request):
     if request.method == "GET":
         query = UserModel.objects.all()
-        if st := request.GET.get("order"):
-            query = query.order_by(st)
+        query = order_query(query, request.GET.get("order", ""))
         return Response(UserSerializer(query, many=True).data)
     elif request.method == "POST":
         serializer = update_item(UserSerializer, request.data)
@@ -64,16 +70,18 @@ def users_view_item(request, pk: int):
         )
 
 
-@swagger_auto_schema(
-    operation_description="Возвращает список проектов, доступен параметр order который позволяет вернуть в нужном порядке",
-    method="get",
-)
+@swagger_auto_schema(operation_description=docs.projects_get, method="get")
 @api_view(["GET", "POST"])
 def projects_view(request):
     if request.method == "GET":
         query = Project.objects.all()
-        if st := request.GET.get("order"):
-            query = query.order_by(st)
+        query = order_query(query, request.GET.get("order", ""))
+        query = date_filter(
+            request.GET.get("mode", "created_at"),
+            query,
+            request.GET.get("start_date", ""),
+            request.GET.get("end_date", ""),
+        )
         return Response(ProjectSerializer(query, many=True).data)
     elif request.method == "POST":
         serializer = update_item(ProjectSerializer, request.data)
@@ -101,21 +109,14 @@ class TasksViewSet(ModelViewSet):
     serializer_class = TaskSerializer
     queryset = Task.objects.all()
 
-    @swagger_auto_schema(
-        operation_description="Возвращает список задач, фильтры:\nstatus - Фильтр по статусу, в качестве значения передается id статуса\npriority - Фильтр по приоритетности, значение также как и в статусе\nassignee - Фильтр по исполнителю, параметр - id пользователя\ntester - фильтр по тестеру см. assignee\n\norder - параметр по которому ведется сортировка, передается название требуемого параметра"
-    )
+    @swagger_auto_schema(operation_description=docs.tasks_get)
     def list(self, request, *args, **kwargs):
         query = self.queryset
-        if st := request.GET.get("status", ""):
-            query = query.filter(status=st)
-        if st := request.GET.get("priority", ""):
-            query = query.filter(priority=st)
-        if st := request.GET.get("assignee", ""):
-            query = query.filter(assignee=st)
-        if st := request.GET.get("tester", ""):
-            query.filter(tester=st)
-        if st := request.GET.get("order", ""):
-            query = query.order_by(st)
+        query = filter_get_params(
+            ["status", "priority", "assignee", "tester", "order", "project"],
+            query,
+            request.GET,
+        )
 
         serializer = TaskSerializer(query, many=True)
         return Response(serializer.data)
@@ -133,11 +134,9 @@ class TasksViewSet(ModelViewSet):
         return a
 
 
+@swagger_auto_schema(operation_description=docs.roles_get, method="get")
 @swagger_auto_schema(
-    operation_description="Возвращает список из ролей", method="get"
-)
-@swagger_auto_schema(
-    operation_description="Создает новую роль",
+    operation_description=docs.roles_post,
     method="post",
     request_body=UserSerializer,
 )
@@ -169,28 +168,25 @@ def user_roles_item(request, pk: int):
 
 
 @swagger_auto_schema(
-    operation_description="Создает новую задачу и отправляет клиенту WebSocket уведомление",
+    operation_description=docs.comments_post,
     method="post",
     query_serializer=CommentSerializer(),
 )
-@swagger_auto_schema(
-    operation_description="Возвращает список комментариев, ?task=int будет возвращать комментарии для определенной задачи",
-    method="get",
-)
+@swagger_auto_schema(operation_description=docs.comments_get, method="get")
 @api_view(["GET", "POST"])
 def comments_view(request):
     priority = TaskComment.objects.all()
     if request.method == "GET":
-        if request.GET.get("task", ""):
-            priority = priority.filter(task=request.GET.get("task"))
+        priority = filter_get_params(["task"], priority, request.GET)
         serializer = CommentSerializer(priority, many=True)
         return Response(serializer.data, status=200)
     elif request.method == "POST":
         serializer = update_item(CommentSerializer, request.data)
-        send_websocket(
-            Task.objects.get(id=request.data["task"]).assignee.id,
-            "На вашу задачу добавлен новый коментарий",
-        )
+        if st := Task.objects.get(id=request.data["task"]).assignee:
+            send_websocket(
+                st.id,
+                "На вашу задачу добавлен новый коментарий",
+            )
         return Response(serializer.data, status=201)
 
 
@@ -211,50 +207,60 @@ def comments_view_item(request, pk: int):
         )
 
 
-class UserProjectAssignmentViewSet(ModelViewSet):
-    serializer_class = UserProjectAssignmentSerializer
-    queryset = UserProjectAssignment.objects.all()
-
-    @swagger_auto_schema(
-        operation_description="Добавление пользователя в проект, при добавлении пользователю приходит письмо на почту а также websocket уведомление"
-    )
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
+@swagger_auto_schema(
+    operation_description=docs.user_project_assignment_post, method="post"
+)
+@api_view(["GET", "POST"])
+def user_project_assignment(request):
+    upa = UserProjectAssignment.objects.all()
+    if request.method == "GET":
+        serializer = UserProjectAssignmentSerializer(upa, many=True)
+        return Response(serializer.data, status=200)
+    elif request.method == "POST":
+        serializer = update_item(UserProjectAssignmentSerializer, request.data)
         project = Project.objects.get(id=request.data.get("project", 0))
         role = Role.objects.get(id=request.data.get("role", 0)).name
 
-        from smtplib import SMTP
-
-        smtp_obj = SMTP("smtp.gmail.com", 587)
-        smtp_obj.starttls()
-
-        from_email = os.environ.get("SENDER_EMAIL")
-
-        smtp_obj.login(from_email, os.environ.get("GOOGLE_KEY"))
-        smtp_obj.sendmail(
-            from_email,
-            UserModel.objects.get(id=request.data.get("user", 0)).email,
+        message = (
             f"you assigned to project: {project.title} as {role}. "
-            f"Go on site to check more.\n\n\n\n".encode("utf-8"),
+            f"Go on site to check more.\n\n\n\n".encode("utf-8")
         )
-        smtp_obj.quit()
+        send_email(
+            UserModel.objects.get(id=request.data.get("user", 0)).email,
+            message,
+        )
 
         send_websocket(
             request.data.get("user", 0),
             f"Вы назначены в новый проект {project.title}",
         )
+        return Response(serializer.data, status=201)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(["GET", "PATCH", "DELETE"])
+def user_project_assignment_item(request, pk: int):
+    upa = get_object_or_404(UserProjectAssignment, id=pk)
+    if request.method == "GET":
+        serializer = UserProjectAssignmentSerializer(upa)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    elif request.method == "PATCH":
+        serializer = update_item(
+            UserProjectAssignmentSerializer, request.data, upa
+        )
+        return Response(serializer.data, status=200)
+    elif request.method == "DELETE":
+        upa.delete()
+        return Response(
+            {"detail": "successfully deleted"},
+            status=204,
+        )
 
 
 @swagger_auto_schema(
-    operation_description="Возвращает id, name приоритетов задач", method="get"
+    operation_description=docs.task_priority_get, method="get"
 )
 @swagger_auto_schema(
-    operation_description="Создает приоритеты задач, возвращает их id",
+    operation_description=docs.task_priority_post,
     method="post",
     query_serializer=TaskPrioritySerializer(),
 )
@@ -286,11 +292,9 @@ def task_priority_item(request, pk: int):
         )
 
 
+@swagger_auto_schema(operation_description=docs.task_status_get, method="get")
 @swagger_auto_schema(
-    operation_description="Возвращает id, name статусов задач", method="get"
-)
-@swagger_auto_schema(
-    operation_description="Создает статусы задач, возвращает их id",
+    operation_description=docs.task_status_post,
     method="post",
     query_serializer=TaskStatusSerializer(),
 )
@@ -323,8 +327,8 @@ def task_status_item(request, pk: int):
 
 
 @swagger_auto_schema(
-    operation_description="Метод регистрации пользователя, для заполнения рекомендуется только username и пароль",
-    methods=["post"],
+    operation_description=docs.register_user_post,
+    method="post",
     request_body=UserSerializer,
 )
 @api_view(["POST"])
@@ -341,23 +345,13 @@ def register_user(request):
 
 
 def update_item(serializer, data, obj=None):
-    serializer = serializer(obj, data=data)
+    serializer = serializer(obj, data=data, partial=obj is not None)
     serializer.is_valid(raise_exception=True)
     serializer.save()
-    return serializer
-
-
-def work_with_items(base_serializer, model, request, pk):
-    obj = get_object_or_404(model, id=pk)
-    if request.method == "GET":
-        serializer = base_serializer(obj)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    elif request.method == "PATCH":
-        serializer = update_item(TaskStatusSerializer, request.data, obj)
-        return Response(serializer.data, status=200)
-    elif request.method == "DELETE":
-        obj.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
+    if obj is None:
+        logging.info(
+            f"Создание данных {serializer} со следующими данными {data}"
         )
+    else:
+        logging.info(f"Обновление данных {obj}, со следующими данными {data}")
+    return serializer

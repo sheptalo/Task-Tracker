@@ -15,7 +15,16 @@ from .models import (
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
-        fields = "__all__"
+        fields = [
+            "id",
+            "avatar",
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "role",
+            "projects",
+        ]
 
 
 class ProjectSerializer(serializers.ModelSerializer):

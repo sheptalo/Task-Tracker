@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -7,6 +9,7 @@ class Project(models.Model):
     description = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
     status_choices = (("active", "Активен"), ("archived", "Архивирован"))
     status = models.CharField(
         max_length=10, choices=status_choices, default="active"
@@ -14,6 +17,9 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
+
+    def close(self):
+        self.archived_at = datetime.now()
 
 
 class UserModel(AbstractUser):

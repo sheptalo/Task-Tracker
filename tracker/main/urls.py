@@ -4,7 +4,6 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 
-router.register(r"user-project-role", views.UserProjectAssignmentViewSet)
 router.register(r"tasks", views.TasksViewSet)
 
 urlpatterns = [
@@ -22,4 +21,6 @@ urlpatterns = [
     path("projects/<int:pk>/", views.projects_view_item),
     path("comments/", views.comments_view),
     path("comments/<int:pk>/", views.comments_view_item),
+    path("user-project-role/", views.user_project_assignment),
+    path("user-project-role/<int:pk>/", views.user_project_assignment_item),
 ]
