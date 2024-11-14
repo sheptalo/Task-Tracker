@@ -8,3 +8,4 @@ python-dotenv
 asgiref
 drf-yasg
 daphne
+django-rest-swagger
