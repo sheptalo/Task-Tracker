@@ -14,7 +14,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_PASSWORD: 12345678
           POSTGRES_DB: tracker
         ports:
           - 5432:5432
@@ -54,11 +54,11 @@ jobs:
       env:
         DB_NAME: tracker
         DB_USER: postgres
-        DB_PASSWORD: ${{ secrets.DP_PASSWORD }}
+        DB_PASSWORD: 12345678
         DB_HOST: 127.0.0.1
-        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        SECRET_KEY: django-insecure-=x%a6c9eiwa@jz2ef$ovxm$08l$p#+9$$zny&46j^!8(d6kk0t
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
         GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
-        USER_NAME: ${{ secrets.USER_NAME }}
-        USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+        USER_NAME: arsolovov
+        USER_PASSWORD: 12345678
 
