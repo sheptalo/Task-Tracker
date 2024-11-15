@@ -44,7 +44,7 @@ jobs:
     - name: set up superuser
       run: |
         cd tracker
-        python manage.py createsuperuser --noinput
+        python manage.py createsuperuser --email test@email.com --noinput
       env:
         DJANGO_SUPERUSER_PASSWORD: 12345678
         DJANGO_SUPERUSER_USERNAME: arsolovov 
