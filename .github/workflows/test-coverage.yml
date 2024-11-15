@@ -2,9 +2,9 @@ name: Django Coverage
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "Test-branch" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "Test-branch" ]
 
 jobs:
   build:
@@ -45,8 +45,8 @@ jobs:
       run: |
         python manage.py createsuperuser --noinput
       env:
-        DJANGO_SUPERUSER_PASSWORD: ${{ secrets.USER_PASSWORD }}
-        DJANGO_SUPERUSER_USERNAME: ${{ secrets.USER_NAME }}
+        DJANGO_SUPERUSER_PASSWORD: 12345678
+        DJANGO_SUPERUSER_USERNAME: arsolovov 
 
     - name: Run Tests
       run: |
