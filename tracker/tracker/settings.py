@@ -67,10 +67,10 @@ WSGI_APPLICATION = "tracker.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.environ.get("DB_NAME"),
-        "USER": os.environ.get("DB_USER"),
-        "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST": os.environ.get("DB_HOST"),
+        "NAME": os.environ.get("DB_NAME", "tracker"),
+        "USER": os.environ.get("DB_USER", "postgres"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "12345678"),
+        "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
         "PORT": "5432",
     }
 }
