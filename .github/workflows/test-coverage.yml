@@ -43,6 +43,7 @@ jobs:
 
     - name: set up superuser
       run: |
+        cd tracker
         python manage.py createsuperuser --noinput
       env:
         DJANGO_SUPERUSER_PASSWORD: 12345678
@@ -50,6 +51,7 @@ jobs:
 
     - name: Run Tests
       run: |
+        cd tracker
         python manage.py test
       env:
         DB_NAME: tracker
