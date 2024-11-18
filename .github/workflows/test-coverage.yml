@@ -23,7 +23,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.11
@@ -40,25 +39,24 @@ jobs:
         cd tracker
         python manage.py makemigrations
         python manage.py migrate
-
     - name: set up superuser
       run: |
-        python manage.py createsuperuser --noinput
+        cd tracker
+        python manage.py createsuperuser --email test@email.com --noinput
       env:
-        DJANGO_SUPERUSER_PASSWORD: ${{ secrets.USER_PASSWORD }}
-        DJANGO_SUPERUSER_USERNAME: ${{ secrets.USER_NAME }}
+        DJANGO_SUPERUSER_PASSWORD: 12345678
+        DJANGO_SUPERUSER_USERNAME: arsolovov
 
     - name: Run Tests
       run: |
+        cd tracker
         python manage.py test
       env:
         DB_NAME: tracker
         DB_USER: postgres
         DB_PASSWORD: 12345678
         DB_HOST: 127.0.0.1
-        SECRET_KEY: django-insecure-=x%a6c9eiwa@jz2ef$ovxm$08l$p#+9$$zny&46j^!8(d6kk0t
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
         GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
         USER_NAME: arsolovov
         USER_PASSWORD: 12345678
-

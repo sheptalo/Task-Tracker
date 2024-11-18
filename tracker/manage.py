@@ -5,7 +5,9 @@ import os
 import sys
 import logging
 
-logging.basicConfig(filename="django.log")
+logging.basicConfig(
+    filename="django.log", level=logging.INFO, encoding="utf-8"
+)
 
 
 def main():

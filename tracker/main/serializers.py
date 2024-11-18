@@ -9,6 +9,7 @@ from .models import (
     TaskStatus,
     TaskPriority,
     Role,
+    ProjectsHistory,
 )
 
 
@@ -25,6 +26,22 @@ class UserSerializer(serializers.ModelSerializer):
             "role",
             "projects",
         ]
+
+
+class RegSerializer(serializers.ModelSerializer):
+    # для регистрации
+    password = serializers.CharField(min_length=8)
+
+    class Meta:
+        model = UserModel
+        fields = ["username", "password"]
+
+    def save(self, **kwargs):
+        user = UserModel()
+        user.username = self.validated_data["username"]
+        user.set_password(self.validated_data["password"])
+        user.save()
+        return user
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -67,3 +84,9 @@ class TaskPrioritySerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskPriority
         fields = ["id", "name"]
+
+
+class ProjectHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectsHistory
+        fields = "__all__"

@@ -110,3 +110,8 @@ class TaskComment(models.Model):
 
     def __str__(self):
         return f'Комментарий к задаче "{self.task}" от {self.author}'
+
+
+class ProjectsHistory(models.Model):
+    user = models.ForeignKey(UserModel, on_delete=models.CASCADE)
+    project_name = models.CharField(max_length=50)

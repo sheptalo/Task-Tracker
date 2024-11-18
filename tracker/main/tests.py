@@ -27,7 +27,7 @@ class UserAuthTestCase(TestCase):
         )
         assert req.status_code != 404
 
-    def test_register_login_delete_user(self):
+    def test_user(self):
         client = Client()
         letters = printable.replace(" \t\n\r\v\f", "")
 
@@ -86,7 +86,7 @@ class TaskStatusTestCase(TestCase):
             random.choice(ascii_letters) for _ in range(12)
         )
 
-    def Test_status_create(self):
+    def Test_create(self):
         client = self.client
 
         req = client.post(
@@ -104,7 +104,7 @@ class TaskStatusTestCase(TestCase):
 
         self.status_id = res["id"]
 
-    def Test_status_change(self):
+    def Test_change(self):
         client = self.client
         new_name = "".join(random.choice(ascii_letters) for _ in range(12))
         print(new_name)
@@ -128,7 +128,7 @@ class TaskStatusTestCase(TestCase):
 
         self.assertEqual(req.status_code, 200)
 
-    def Test_status_delete(self):
+    def Test_delete(self):
         client = self.client
 
         req = client.delete(
@@ -139,9 +139,9 @@ class TaskStatusTestCase(TestCase):
         self.assertEqual(req.status_code, 204)
 
     def test_status(self):
-        self.Test_status_create()
-        self.Test_status_change()
-        self.Test_status_delete()
+        self.Test_create()
+        self.Test_change()
+        self.Test_delete()
 
 
 class TaskPriorityTestCase(TestCase):
@@ -160,7 +160,7 @@ class TaskPriorityTestCase(TestCase):
             random.choice(ascii_letters) for _ in range(12)
         )
 
-    def Test_priority_create(self):
+    def Test_create(self):
         client = self.client
 
         req = client.post(
@@ -178,7 +178,7 @@ class TaskPriorityTestCase(TestCase):
 
         self.status_id = res["id"]
 
-    def Test_priority_change(self):
+    def Test_change(self):
         client = self.client
         new_name = "".join(random.choice(ascii_letters) for _ in range(12))
         req = client.patch(
@@ -200,7 +200,7 @@ class TaskPriorityTestCase(TestCase):
 
         self.assertEqual(req.status_code, 200)
 
-    def Test_priority_delete(self):
+    def Test_delete(self):
         client = self.client
 
         req = client.delete(
@@ -211,9 +211,9 @@ class TaskPriorityTestCase(TestCase):
         self.assertEqual(req.status_code, 204)
 
     def test_priority(self):
-        self.Test_priority_create()
-        self.Test_priority_change()
-        self.Test_priority_delete()
+        self.Test_create()
+        self.Test_change()
+        self.Test_delete()
 
 
 class RoleTestCase(TestCase):
@@ -232,7 +232,7 @@ class RoleTestCase(TestCase):
             random.choice(ascii_letters) for _ in range(12)
         )
 
-    def Test_role_create(self):
+    def Test_create(self):
         client = self.client
 
         req = client.post(
@@ -250,7 +250,7 @@ class RoleTestCase(TestCase):
 
         self.status_id = res["id"]
 
-    def Test_role_change(self):
+    def Test_change(self):
         client = self.client
         new_name = "".join(random.choice(ascii_letters) for _ in range(12))
         req = client.patch(
@@ -272,7 +272,7 @@ class RoleTestCase(TestCase):
 
         self.assertEqual(req.status_code, 200)
 
-    def Test_role_delete(self):
+    def Test_delete(self):
         client = self.client
 
         req = client.delete(
@@ -283,9 +283,9 @@ class RoleTestCase(TestCase):
         self.assertEqual(req.status_code, 204)
 
     def test_role(self):
-        self.Test_role_create()
-        self.Test_role_change()
-        self.Test_role_delete()
+        self.Test_create()
+        self.Test_change()
+        self.Test_delete()
 
 
 class TaskCommentTestCase(TestCase):
@@ -321,7 +321,7 @@ class TaskCommentTestCase(TestCase):
             headers=self.headers,
         ).json()
 
-    def Test_create_comment(self):
+    def Test_create(self):
         client = self.client
 
         req = client.post(
@@ -337,7 +337,7 @@ class TaskCommentTestCase(TestCase):
         self.assertEqual(req.status_code, 201)
         self.comment = req.json()
 
-    def Test_update_comment(self):
+    def Test_update(self):
         client = self.client
 
         req = client.patch(
@@ -349,7 +349,7 @@ class TaskCommentTestCase(TestCase):
         print(req.json())
         self.assertEqual(req.json()["text"], "new_text")
 
-    def Test_delete_comment(self):
+    def Test_delete(self):
         client = self.client
 
         req = client.delete(
@@ -359,9 +359,9 @@ class TaskCommentTestCase(TestCase):
         self.assertEqual(req.status_code, 204)
 
     def test_comments(self):
-        self.Test_create_comment()
-        self.Test_update_comment()
-        self.Test_delete_comment()
+        self.Test_create()
+        self.Test_update()
+        self.Test_delete()
 
     def tearDown(self):
         self.client.delete(
@@ -369,5 +369,62 @@ class TaskCommentTestCase(TestCase):
         )
 
 
-# TODO class ProjectTestCase(TestCase):
-#     pass
+class ProjectTestCase(TestCase):
+    def setUp(self):
+        self.client = Client(headers={"Content-Type": "application/json"})
+        login = self.client.post(
+            "/api/v1/token/",
+            {"username": USERNAME, "password": USER_PASSWORD},
+        )
+        login_res = login.json()
+
+        assert "access" in login_res.keys()
+
+        self.headers = {"Authorization": f'Bearer {login_res["access"]}'}
+        self.project_name = "".join(
+            random.choice(ascii_letters) for _ in range(12)
+        )
+
+    def Test_create(self):
+        client = self.client
+
+        req = client.post(
+            "/api/v1/projects/",
+            {"title": self.project_name, "status": "active"},
+            headers=self.headers,
+        )
+        res = req.json()
+
+        self.assertEqual(req.status_code, 201)
+
+        self.project = res
+
+    def Test_update(self):
+        client = self.client
+
+        req = client.patch(
+            f"/api/v1/projects/{self.project['id']}/",
+            {"title": "new_title"},
+            headers=self.headers,
+            content_type="application/json",
+        )
+        res = req.json()
+        print(res)
+        self.assertEqual(res["title"], "new_title")
+
+    def Test_delete(self):
+        client = self.client
+        req = client.delete(
+            f'/api/v1/projects/{self.project["id"]}/', headers=self.headers
+        )
+        self.assertEqual(req.status_code, 204)
+
+    def test_projects(self):
+        self.Test_create()
+        self.Test_update()
+        self.Test_delete()
+
+    def tearDown(self):
+        self.client.delete(
+            f'/api/v1/projects/{self.project["id"]}/', headers=self.headers
+        )

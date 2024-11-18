@@ -52,17 +52,16 @@ def date_filter(mode, query, start="", end=""):
             month=int(start.split(".")[1]),
             year=int(start.split(".")[-1]),
         )
-
-        filter_kwargs_start = {mode + "__lte": start_date}
-        query.filter(**filter_kwargs_start)
+        filter_kwargs_start = {mode + "__gte": start_date}
+        query = query.filter(**filter_kwargs_start)
     if end:
         end_date = datetime(
             day=int(end.split(".")[0]),
             month=int(end.split(".")[1]),
             year=int(end.split(".")[-1]),
         )
-        filter_kwargs_end = {mode + "__gte": end_date}
+        filter_kwargs_end = {mode + "__lte": end_date}
 
-        query.filter(**filter_kwargs_end)
+        query = query.filter(**filter_kwargs_end)
 
     return query
