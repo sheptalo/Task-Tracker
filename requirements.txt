@@ -10,3 +10,4 @@ drf-yasg
 daphne
 django-rest-swagger
 reportlab
+
