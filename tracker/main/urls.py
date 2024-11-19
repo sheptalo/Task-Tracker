@@ -8,6 +8,8 @@ urlpatterns = [
     path("", include(router.urls)),
     path("users/", views.users_view),
     path("users/<int:pk>/", views.users_view_item),
+    path("history/", views.history_view),
+    path("history/<int:pk>/", views.history_view_item),
     path("register/", views.register_user),
     path("tasks/", views.task_view),
     path("tasks/<int:pk>/", views.task_view_item),
@@ -23,4 +25,6 @@ urlpatterns = [
     path("comments/<int:pk>/", views.comments_view_item),
     path("user-project-role/", views.user_project_assignment),
     path("user-project-role/<int:pk>/", views.user_project_assignment_item),
+    path("get_csv/<int:pk>/", views.get_project_csv),
+    path("get_pdf/<int:pk>/", views.get_project_pdf),
 ]

@@ -1,5 +1,7 @@
 import logging
 
+from django.http import HttpResponse, FileResponse
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from rest_framework import status
@@ -32,6 +34,7 @@ from .models import (
     Role,
     ProjectsHistory,
 )
+from .services import generate_project_csv, generate_pdf_file
 from .utils import (
     send_websocket,
     filter_get_params,
@@ -39,7 +42,7 @@ from .utils import (
     send_email,
     date_filter,
 )
-from tracker import docs
+from . import docs
 
 load_dotenv()
 
@@ -85,7 +88,18 @@ def register_user(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-@swagger_auto_schema(operation_description=docs.history_get, method="get")
+@swagger_auto_schema(
+    operation_description=docs.history_get,
+    method="get",
+    manual_parameters=[
+        openapi.Parameter(
+            "user",
+            openapi.IN_QUERY,
+            description="id пользователя",
+            type="int",
+        )
+    ],
+)
 @swagger_auto_schema(
     operation_description=docs.history_post,
     method="post",
@@ -99,7 +113,7 @@ def history_view(request):
         return Response(ProjectHistorySerializer(query, many=True).data)
     elif request.method == "POST":
         serializer = update_item(ProjectHistorySerializer, request.data)
-        return Response(serializer.data)
+        return Response(serializer.data, status=201)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -144,7 +158,7 @@ def projects_view_item(request, pk: int):
     project = get_object_or_404(Project, id=pk)
     if request.method == "GET":
         serializer = ProjectSerializer(project)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=200)
     elif request.method == "PATCH":
         serializer = update_item(ProjectSerializer, request.data, project)
         return Response(serializer.data, status=200)
@@ -194,9 +208,7 @@ def task_view_item(request, pk: int):
             send_websocket(st, "Вам назначена новая задача")
         if request.data.get("status", ""):
             assignee = Task.objects.get(id=pk).assignee
-            send_websocket(
-                assignee, "Статус задачи изменился, проверьте"
-            )  # TODO Реализовать ссылку на задачу которая изменилась
+            send_websocket(assignee, "Статус задачи изменился, проверьте")
         return Response(serializer.data, status=200)
     elif request.method == "DELETE":
         task.delete()
@@ -281,6 +293,9 @@ def comments_view_item(request, pk: int):
 
 @swagger_auto_schema(
     operation_description=docs.user_project_assignment_post, method="post"
+)
+@swagger_auto_schema(
+    operation_description=docs.user_project_assignment_get, method="get"
 )
 @api_view(["GET", "POST"])
 def user_project_assignment(request):
@@ -397,6 +412,32 @@ def task_status_item(request, pk: int):
             {"detail": "successfully deleted"},
             status=204,
         )
+
+
+@swagger_auto_schema(operation_description=docs.project_csv, method="get")
+@api_view(["GET"])
+def get_project_csv(request, pk: int):
+    project = get_object_or_404(Project, id=pk)
+    if request.method == "GET":
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{project.title}.csv"'
+        )
+        response = generate_project_csv(pk, response)
+        return response
+
+
+@swagger_auto_schema(operation_description=docs.project_pdf, method="get")
+@api_view(["GET"])
+def get_project_pdf(request, pk: int):
+    project = get_object_or_404(Project, id=pk)
+    if request.method == "GET":
+        response = FileResponse(
+            generate_pdf_file(project.id, project.title),
+            as_attachment=True,
+            filename=f"{project.title}.pdf",
+        )
+        return response
 
 
 def update_item(serializer, data, obj=None):
