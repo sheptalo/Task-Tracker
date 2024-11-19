@@ -13,7 +13,6 @@ from rest_framework.response import Response
 
 from dotenv import load_dotenv
 
-import tracker
 from .serializers import (
     UserSerializer,
     ProjectSerializer,

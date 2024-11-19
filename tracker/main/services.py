@@ -14,9 +14,9 @@ import tempfile
 
 @shared_task
 def generate_project_csv(project_id: int):
-    output = StringIO()
-    writer = csv.writer(output)
-    print('lol')
+    output = StringIO()  # хранение данных не в файле а в буфере
+    writer = csv.writer(output)  # создает "писателя", добавляет текст в буфер
+
     writer.writerow(["Title", "assignee", "tester", "status", "priority"])
 
     tasks = Task.objects.all().filter(project_id=project_id)
@@ -26,6 +26,7 @@ def generate_project_csv(project_id: int):
             assignee = UserModel.objects.get(id=task.assignee.id).username
         if task.tester:
             tester = UserModel.objects.get(id=task.tester.id).username
+
         writer.writerow([
             task.title,
             assignee,
@@ -33,6 +34,7 @@ def generate_project_csv(project_id: int):
             task.status,
             task.priority,
         ])
+        
     return output.getvalue()
 
 
