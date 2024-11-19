@@ -1,6 +1,7 @@
 import logging
+from io import BytesIO
 
-from asgiref.sync import async_to_sync
+from celery.result import AsyncResult
 from django.http import HttpResponse, FileResponse
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -12,6 +13,7 @@ from rest_framework.response import Response
 
 from dotenv import load_dotenv
 
+import tracker
 from .serializers import (
     UserSerializer,
     ProjectSerializer,
@@ -461,7 +463,7 @@ def task_status_item(request, pk: int):
 @swagger_auto_schema(operation_description=docs.export, method="get")
 @api_view(["GET"])
 def export(request):
-    project_id = request.GET.get("project_id")
+    project_id = request.GET.get("project_id", 1)
     if not project_id:
         return Response(
             {
@@ -470,23 +472,26 @@ def export(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
     project = get_object_or_404(Project, id=project_id)
-    formatter = request.GET.get("formatter", "csv")
+    formatter = request.GET.get("formatter", "pdf")
     if formatter == "csv":
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = (
-            f'attachment; filename="{project.title}.csv"'
-        )
-        res = generate_project_csv.delay(project.id, response)
-        response = async_to_sync(res.get)
-        print(res)
+        res = generate_project_csv.delay(project.id)
+        result = AsyncResult(res.id)
+        data = result.get()
+        response = HttpResponse(data, content_type='text/csv')
+        response[
+            'Content-Disposition'] = f'attachment; filename="{project.title}.csv"'
         return response
     elif formatter == "pdf":
         file = generate_pdf_file.delay(project.id, project.title)
-        response = FileResponse(
-            file,
-            as_attachment=True,
-            filename=f"{project.title}.pdf",
-        )
+        filepath = file.get()
+
+        with open(filepath, "rb") as f:
+            response = FileResponse(
+                BytesIO(bytes(f.read())),
+                as_attachment=True,
+                filename=f"{project.title}.pdf",
+            )
+            f.close()
         return response
     return Response(
         {"detail": "Не поддерживаемый formatter, используйте pdf или csv"},
