@@ -1,16 +1,22 @@
 import csv
 import os
 
+from django.http import HttpResponse
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+
+from celery import shared_task
 
 from .models import Task, UserModel
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
 
-def generate_project_csv(project_id, response):
-    writer = csv.writer(response)
+@shared_task
+def generate_project_csv(project_id: int, response: HttpResponse):
+    writer = csv.writer(
+        response
+    )  # Передаем writer`у csv response чтобы он в нем писал
     writer.writerow(["Title", "assignee", "tester", "status", "priority"])
 
     tasks = Task.objects.all().filter(project_id=project_id)
@@ -33,7 +39,8 @@ def generate_project_csv(project_id, response):
     return response
 
 
-def generate_pdf_file(project_id, project_name):
+@shared_task
+def generate_pdf_file(project_id: int, project_name: str):
     pdfmetrics.registerFont(
         TTFont("font", os.path.join(os.getcwd(), "font.ttf"))
     )

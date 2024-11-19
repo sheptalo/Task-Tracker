@@ -25,6 +25,5 @@ urlpatterns = [
     path("comments/<int:pk>/", views.comments_view_item),
     path("user-project-role/", views.user_project_assignment),
     path("user-project-role/<int:pk>/", views.user_project_assignment_item),
-    path("get_csv/<int:pk>/", views.get_project_csv),
-    path("get_pdf/<int:pk>/", views.get_project_pdf),
+    path("export/", views.export),
 ]

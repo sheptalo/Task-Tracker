@@ -12,7 +12,7 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 INSTALLED_APPS = [
@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "channels",
     "rest_framework_swagger",
     "drf_yasg",
+    "celery",
 ]
 
 MIDDLEWARE = [
@@ -117,3 +118,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "main.UserModel"
 ASGI_APPLICATION = "tracker.asgi.application"
 APPEND_SLASH = False
+
+
+CELERY_TIMEZONE = "Europe/Moscow"
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
