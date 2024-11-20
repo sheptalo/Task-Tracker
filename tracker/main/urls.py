@@ -26,4 +26,5 @@ urlpatterns = [
     path("user-project-role/", views.user_project_assignment),
     path("user-project-role/<int:pk>/", views.user_project_assignment_item),
     path("export/", views.export),
+    path("export/<str:task_id>/", views.export_result),
 ]

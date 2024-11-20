@@ -1,8 +1,7 @@
 import logging
-from io import BytesIO
 
 from celery.result import AsyncResult
-from django.http import HttpResponse, FileResponse
+from django.http import HttpResponse
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
@@ -466,36 +465,33 @@ def export(request):
     if not project_id:
         return Response(
             {
-                "detail": "Укажите в query параметрах id проекта пример: ?project_id=1"
+                "detail": "Укажите в query параметрах id проекта"
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
     project = get_object_or_404(Project, id=project_id)
     formatter = request.GET.get("formatter", "pdf")
     if formatter == "csv":
-        res = generate_project_csv.delay(project.id)
-        result = AsyncResult(res.id)
-        data = result.get()
-        response = HttpResponse(data, content_type='text/csv')
-        response[
-            'Content-Disposition'] = f'attachment; filename="{project.title}.csv"'
-        return response
-    elif formatter == "pdf":
-        file = generate_pdf_file.delay(project.id, project.title)
-        filepath = file.get()
+        task = generate_project_csv.delay(project.id)
+        return Response(task.id)
 
-        with open(filepath, "rb") as f:
-            response = FileResponse(
-                BytesIO(bytes(f.read())),
-                as_attachment=True,
-                filename=f"{project.title}.pdf",
-            )
-            f.close()
-        return response
+    elif formatter == "pdf":
+        task = generate_pdf_file.delay(project.id, project.title)
+        return Response(task.id)
+
     return Response(
         {"detail": "Не поддерживаемый formatter, используйте pdf или csv"},
         status=status.HTTP_400_BAD_REQUEST,
     )
+
+
+@api_view(['GET'])
+def export_result(request, task_id: str):
+    task = AsyncResult(task_id)
+    if task.state == "PENDING":
+        return Response({'detail': 'pending'})
+    result = task.result
+    return result
 
 
 def update_item(serializer, data, obj=None):
