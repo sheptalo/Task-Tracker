@@ -2,9 +2,9 @@ name: Django Coverage
 
 on:
   push:
-    branches: [ "master" ]
+    branches: "*"
   pull_request:
-    branches: [ "master" ]
+    branches: "*"
 
 jobs:
   build:
@@ -55,7 +55,6 @@ jobs:
         DB_NAME: tracker
         DB_USER: postgres
         DB_PASSWORD: 12345678
-        DB_HOST: 127.0.0.1
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
         GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
         USER_NAME: arsolovov
