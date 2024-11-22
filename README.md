@@ -55,7 +55,6 @@ $ cd tracker
 **_Так как возможно ваша база данных не готова к проекту необходимо выполнить некоторые действия_**
 
 ```bash
-$ python manage.py makemigrations
 $ python manage.py migrate
 ```
 

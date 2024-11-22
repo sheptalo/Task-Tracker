@@ -32,7 +32,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A tracker worker -l info
+    command: celery -A tracker worker -l info -P eventlet
     volumes:
       - ./tracker:/app
     depends_on:
@@ -41,6 +41,6 @@ services:
     env_file: .env
     environment:
       - DJANGO_SETTINGS_MODULE=tracker.settings
-
+      - C_FORCE_ROOT=1
 volumes:
   postgres_data:

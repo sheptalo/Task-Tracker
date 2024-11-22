@@ -1,12 +1,11 @@
 import logging
 
 from celery.result import AsyncResult
-from django.http import HttpResponse
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
@@ -22,7 +21,7 @@ from .serializers import (
     TaskStatusSerializer,
     TaskPrioritySerializer,
     RegSerializer,
-    ProjectHistorySerializer,
+    ProjectHistorySerializer, ExportSerializer,
 )
 from .models import (
     Project,
@@ -51,7 +50,7 @@ load_dotenv()
 @swagger_auto_schema(
     operation_description=docs.users_get,
     method="get",
-    responses={200: openapi.Response("response description", UserSerializer)},
+    responses={200: UserSerializer()},
 )
 @api_view(["GET"])
 def users_view(request):
@@ -73,10 +72,7 @@ def users_view_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         user.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -85,6 +81,7 @@ def users_view_item(request, pk: int):
     request_body=RegSerializer,
 )
 @api_view(["POST"])
+@permission_classes(())
 def register_user(request):
     if request.method == "POST":
         serializer = RegSerializer(data=request.data)
@@ -104,9 +101,7 @@ def register_user(request):
             type="int",
         )
     ],
-    responses={
-        200: openapi.Response("response description", ProjectHistorySerializer)
-    },
+    responses={200: ProjectHistorySerializer()},
 )
 @swagger_auto_schema(
     operation_description=docs.history_post,
@@ -146,9 +141,7 @@ def history_view_item(request, pk: int):
 @swagger_auto_schema(
     operation_description=docs.projects_get,
     method="get",
-    responses={
-        200: openapi.Response("response description", ProjectSerializer)
-    },
+    responses={200: ProjectSerializer()},
 )
 @api_view(["GET", "POST"])
 def projects_view(request):
@@ -187,7 +180,7 @@ def projects_view_item(request, pk: int):
 @swagger_auto_schema(
     operation_description=docs.tasks_get,
     method="get",
-    responses={200: openapi.Response("response description", TaskSerializer)},
+    responses={200: TaskSerializer()},
 )
 @api_view(["GET", "POST"])
 def task_view(request):
@@ -239,7 +232,7 @@ def task_view_item(request, pk: int):
 @swagger_auto_schema(
     operation_description=docs.roles_get,
     method="get",
-    responses={200: openapi.Response("response description", RoleSerializer)},
+    responses={200: RoleSerializer()},
 )
 @swagger_auto_schema(
     operation_description=docs.roles_post,
@@ -281,9 +274,7 @@ def user_roles_item(request, pk: int):
 @swagger_auto_schema(
     operation_description=docs.comments_get,
     method="get",
-    responses={
-        200: openapi.Response("response description", CommentSerializer)
-    },
+    responses={200: CommentSerializer()},
 )
 @api_view(["GET", "POST"])
 def comments_view(request):
@@ -325,11 +316,7 @@ def comments_view_item(request, pk: int):
 @swagger_auto_schema(
     operation_description=docs.user_project_assignment_get,
     method="get",
-    responses={
-        200: openapi.Response(
-            "response description", UserProjectAssignmentSerializer
-        )
-    },
+    responses={200: UserProjectAssignmentSerializer()},
 )
 @api_view(["GET", "POST"])
 def user_project_assignment(request):
@@ -381,9 +368,7 @@ def user_project_assignment_item(request, pk: int):
 @swagger_auto_schema(
     operation_description=docs.task_priority_get,
     method="get",
-    responses={
-        200: openapi.Response("response description", TaskPrioritySerializer)
-    },
+    responses={200: TaskPrioritySerializer()},
 )
 @swagger_auto_schema(
     operation_description=docs.task_priority_post,
@@ -421,9 +406,7 @@ def task_priority_item(request, pk: int):
 @swagger_auto_schema(
     operation_description=docs.task_status_get,
     method="get",
-    responses={
-        200: openapi.Response("response description", TaskStatusSerializer)
-    },
+    responses={200: TaskStatusSerializer()}
 )
 @swagger_auto_schema(
     operation_description=docs.task_status_post,
@@ -461,15 +444,12 @@ def task_status_item(request, pk: int):
 @swagger_auto_schema(operation_description=docs.export, method="get")
 @api_view(["GET"])
 def export(request):
-    project_id = request.GET.get("project_id", 1)
-    if not project_id:
-        return Response(
-            {
-                "detail": "Укажите в query параметрах id проекта"
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    serializer = ExportSerializer(data=request.GET)
+    serializer.is_valid(raise_exception=True)
+    project_id = serializer.validated_data["id"]
+
     project = get_object_or_404(Project, id=project_id)
+
     formatter = request.GET.get("formatter", "pdf")
     if formatter == "csv":
         task = generate_project_csv.delay(project.id)
