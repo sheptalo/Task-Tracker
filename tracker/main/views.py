@@ -21,7 +21,8 @@ from .serializers import (
     TaskStatusSerializer,
     TaskPrioritySerializer,
     RegSerializer,
-    ProjectHistorySerializer, ExportSerializer,
+    ProjectHistorySerializer,
+    ExportSerializer,
 )
 from .models import (
     Project,
@@ -132,10 +133,7 @@ def history_view_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         history.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -171,10 +169,7 @@ def projects_view_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         project.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -223,10 +218,7 @@ def task_view_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         task.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -260,10 +252,7 @@ def user_roles_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         role.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -304,10 +293,7 @@ def comments_view_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         comment.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -359,10 +345,7 @@ def user_project_assignment_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         upa.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -397,16 +380,13 @@ def task_priority_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         task.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
     operation_description=docs.task_status_get,
     method="get",
-    responses={200: TaskStatusSerializer()}
+    responses={200: TaskStatusSerializer()},
 )
 @swagger_auto_schema(
     operation_description=docs.task_status_post,
@@ -435,10 +415,7 @@ def task_status_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         task.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(operation_description=docs.export, method="get")
@@ -465,11 +442,11 @@ def export(request):
     )
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def export_result(request, task_id: str):
     task = AsyncResult(task_id)
     if task.state == "PENDING":
-        return Response({'detail': 'pending'})
+        return Response({"detail": "pending"})
     result = task.result
     return result
 
