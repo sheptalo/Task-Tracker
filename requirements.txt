@@ -13,3 +13,4 @@ reportlab
 celery
 redis
 eventlet
+channels_redis

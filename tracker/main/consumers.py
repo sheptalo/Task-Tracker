@@ -19,10 +19,7 @@ class Notifications(WebsocketConsumer):
         self.accept()
 
     def receive(self, text_data=None, bytes_data=None):
-        print("a")
-        text_data_json = json.loads(text_data)
-        message = text_data_json["message"]
-        self.send(text_data=json.dumps({"message": message}))
+        print(text_data)
 
     def disconnect(self, code):
         async_to_sync(self.channel_layer.group_discard)(

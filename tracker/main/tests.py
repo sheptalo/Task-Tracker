@@ -11,16 +11,15 @@ load_dotenv()
 
 USERNAME = os.environ.get("USER_NAME")
 USER_PASSWORD = os.environ.get("USER_PASSWORD")
+LOGIN_DATA = {"username": USERNAME, "password": USER_PASSWORD}
+DEFAULT_HEADERS = {"Content-Type": "application/json"}
 
 
 # Create your tests here.
 class UserAuthTestCase(TestCase):
     def test_register_exist_user(self):
         client = Client()
-        req = client.post(
-            "/api/v1/register/",
-            {"username": USERNAME, "password": USER_PASSWORD},
-        )
+        req = client.post("/api/v1/register/", LOGIN_DATA)
         self.assertDictEqual(
             req.json(),
             {"username": ["Пользователь с таким именем уже существует."]},
@@ -72,11 +71,8 @@ class UserAuthTestCase(TestCase):
 
 class TaskStatusTestCase(TestCase):
     def setUp(self):
-        self.client = Client(headers={"Content-Type": "application/json"})
-        login = self.client.post(
-            "/api/v1/token/",
-            {"username": USERNAME, "password": USER_PASSWORD},
-        )
+        self.client = Client(headers=DEFAULT_HEADERS)
+        login = self.client.post("/api/v1/token/", LOGIN_DATA)
         login_res = login.json()
 
         assert "access" in login_res.keys()
@@ -146,11 +142,8 @@ class TaskStatusTestCase(TestCase):
 
 class TaskPriorityTestCase(TestCase):
     def setUp(self):
-        self.client = Client(headers={"Content-Type": "application/json"})
-        login = self.client.post(
-            "/api/v1/token/",
-            {"username": USERNAME, "password": USER_PASSWORD},
-        )
+        self.client = Client(headers=DEFAULT_HEADERS)
+        login = self.client.post("/api/v1/token/", LOGIN_DATA)
         login_res = login.json()
 
         assert "access" in login_res.keys()
@@ -218,11 +211,8 @@ class TaskPriorityTestCase(TestCase):
 
 class RoleTestCase(TestCase):
     def setUp(self):
-        self.client = Client(headers={"Content-Type": "application/json"})
-        login = self.client.post(
-            "/api/v1/token/",
-            {"username": USERNAME, "password": USER_PASSWORD},
-        )
+        self.client = Client(headers=DEFAULT_HEADERS)
+        login = self.client.post("/api/v1/token/", LOGIN_DATA)
         login_res = login.json()
 
         assert "access" in login_res.keys()
@@ -290,11 +280,8 @@ class RoleTestCase(TestCase):
 
 class TaskCommentTestCase(TestCase):
     def setUp(self):
-        self.client = Client(headers={"Content-Type": "application/json"})
-        login = self.client.post(
-            "/api/v1/token/",
-            {"username": USERNAME, "password": USER_PASSWORD},
-        )
+        self.client = Client(headers=DEFAULT_HEADERS)
+        login = self.client.post("/api/v1/token/", LOGIN_DATA)
         login_res = login.json()
 
         assert "access" in login_res.keys()
@@ -310,13 +297,21 @@ class TaskCommentTestCase(TestCase):
             headers=self.headers,
         ).json()
 
+        self.priority = self.client.post(
+            "/api/v1/task-priority/", {"name": "high"}
+        ).json()
+
+        self.status = self.client.post(
+            "/api/v1/task-status/", {"name": "st"}
+        ).json()
+
         self.task = self.client.post(
             "/api/v1/tasks/",
             {
                 "title": "title",
                 "project": self.project["id"],
-                "status": 1,
-                "priority": 1,
+                "status": self.status["id"],
+                "priority": self.priority["id"],
             },
             headers=self.headers,
         ).json()
@@ -367,15 +362,14 @@ class TaskCommentTestCase(TestCase):
         self.client.delete(
             f'/api/v1/projects/{self.project["id"]}/', headers=self.headers
         )
+        self.client.delete(f'/api/v1/task-priority/{self.priority["id"]}/')
+        self.client.delete(f'/api/v1/task-status/{self.status["id"]}/')
 
 
 class ProjectTestCase(TestCase):
     def setUp(self):
-        self.client = Client(headers={"Content-Type": "application/json"})
-        login = self.client.post(
-            "/api/v1/token/",
-            {"username": USERNAME, "password": USER_PASSWORD},
-        )
+        self.client = Client(headers=DEFAULT_HEADERS)
+        login = self.client.post("/api/v1/token/", LOGIN_DATA)
         login_res = login.json()
 
         assert "access" in login_res.keys()
@@ -427,4 +421,88 @@ class ProjectTestCase(TestCase):
     def tearDown(self):
         self.client.delete(
             f'/api/v1/projects/{self.project["id"]}/', headers=self.headers
+        )
+
+
+class TaskTestCase(TestCase):
+    def setUp(self):
+        self.client = Client(headers=DEFAULT_HEADERS)
+        login = self.client.post("/api/v1/token/", LOGIN_DATA).json()
+
+        assert "access" in login.keys()
+        self.headers = {"Authorization": f'Bearer {login["access"]}'}
+
+        self.project = self.client.post(
+            "/api/v1/projects/",
+            {"title": "title", "status": "active"},
+            headers=self.headers,
+        ).json()
+
+        self.priority = self.client.post(
+            "/api/v1/task-priority/",
+            {"name": "high"},
+            headers=self.headers,
+        ).json()
+
+        self.status = self.client.post(
+            "/api/v1/task-status/",
+            {"name": "st"},
+            headers=self.headers,
+        ).json()
+
+    def Test_create(self):
+        client = self.client
+        req = client.post(
+            "/api/v1/tasks/",
+            {
+                "title": "title",
+                "project": self.project["id"],
+                "status": self.priority["id"],
+                "priority": self.priority["id"],
+            },
+            headers=self.headers,
+        )
+        self.assertEqual(req.status_code, 201)
+        self.task = req.json()
+        self.assertEqual(self.task["title"], "title")
+
+    def Test_update(self):
+        client = self.client
+
+        req = client.patch(
+            f"/api/v1/tasks/{self.task['id']}/",
+            {
+                "title": "new_title",
+            },
+            content_type="application/json",
+            headers=self.headers,
+        )
+
+        self.assertEqual(req.json()["title"], "new_title")
+
+    def Test_delete(self):
+        client = self.client
+
+        req = client.delete(
+            f'/api/v1/tasks/{self.task["id"]}/', headers=self.headers
+        )
+        self.assertEqual(req.status_code, 204)
+
+    def test_tasks(self):
+        self.Test_create()
+        self.Test_update()
+        self.Test_delete()
+
+    def tearDown(self):
+        self.client.delete(
+            f'/api/v1/projects/{self.project["id"]}/',
+            headers=self.headers,
+        )
+        self.client.delete(
+            f'/api/v1/task-priority/{self.priority["id"]}/',
+            headers=self.headers,
+        )
+        self.client.delete(
+            f'/api/v1/task-status/{self.status["id"]}/',
+            headers=self.headers,
         )

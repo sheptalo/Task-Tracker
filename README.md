@@ -14,22 +14,30 @@ Task tracker - Упрощенная система управления зада
 
 ### Подготовка
 
-1. Необходимо иметь настроенную базу данных postgres, и корне проекта создать файл .env со следующим содержимым
-2. Готовый и подключенный redis и celery для генерации csv и pdf данных о проекте
+1. Создать файл .env
 
-3. .env файл
 ```text
 GOOGLE_KEY=Секретный ключ к гугл аккаунту для приложений
 SENDER_EMAIL=Гугл почта с которой будут отправляться сообщения
-SECRET_KEY='django-insecure-=x%a6c9eiwa@jz2ef$ovxm$08l$p#+9$$zny&46j^!8(d6kk0t'
+
+SECRET_KEY=Секретный ключ проекта, если не указан используется стандартный
+
 DB_NAME=Имя базы данных
 DB_USER=Имя пользователя имеющего доступ к ней
 DB_PASSWORD=Пароль к пользователю
-DB_HOST=ip адрес базы данных
+DB_HOST=ip адрес базы данных, не указывается при использовании в докере
+
+REDIS_HOST=ip Редиса, при использовании в докере можно не указывать
+
 USER_NAME=имя супер пользователя # для тестов
 USER_PASSWORD=пароль от аккаунта супер пользователя # для тестов
-REDIS_BROKER = ip для селери
-REDIS_BACKEND=ip для бекенда селери
+```
+
+2. В случае использования linux имеет смысл поменять requirements.txt
+
+```text
+- psycopg2
++ psycopg2-binary
 ```
 
 ---
@@ -37,31 +45,13 @@ REDIS_BACKEND=ip для бекенда селери
 ### Запуск
 
 ```bash
-$ python -m venv venv
+docker-compose up -d --build
 ```
 
-```bash
-$ venv\Scripts\activate
-```
+При необходимости можно провести миграции базы данных контейнера
 
 ```bash
-$ pip install -r requirements.txt
-```
-
-```bash
-$ cd tracker
-```
-
-**_Так как возможно ваша база данных не готова к проекту необходимо выполнить некоторые действия_**
-
-```bash
-$ python manage.py migrate
-```
-
-Запускаем проект
-
-```bash
-$ python manage.py runserver
+sudo docker-compose run --rm -v $(pwd):/app web python manage.py migrate
 ```
 
 ---

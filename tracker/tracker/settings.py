@@ -14,6 +14,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
 
 INSTALLED_APPS = [
     "daphne",
@@ -95,7 +96,12 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 CHANNEL_LAYERS = {
-    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, 6379)],
+        },
+    },
 }
 
 LANGUAGE_CODE = "ru"
@@ -121,8 +127,8 @@ APPEND_SLASH = False
 
 
 CELERY_TIMEZONE = "Europe/Moscow"
-CELERY_BROKER_URL = os.environ.get('REDIS_BROKER', "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = os.environ.get('REDIS_BACKEND', "redis://localhost:6379/0")
+CELERY_BROKER_URL = f'redis://{REDIS_HOST}:6379/0'
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:6379/0'
 CELERY_WORKER_CONCURRENCY = 4
 CELERY_TIME_LIMIT = 300
 CELERY_RESULT_SERIALIZER = 'pickle'
