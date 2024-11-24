@@ -10,3 +10,6 @@ drf-yasg
 daphne
 django-rest-swagger
 reportlab
+celery
+redis
+eventlet

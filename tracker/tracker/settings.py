@@ -12,7 +12,7 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 INSTALLED_APPS = [
@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "channels",
     "rest_framework_swagger",
     "drf_yasg",
+    "celery",
 ]
 
 MIDDLEWARE = [
@@ -73,7 +74,7 @@ DATABASES = {
         "NAME": os.environ.get("DB_NAME"),
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST": os.environ.get("DB_HOST"),
+        "HOST": os.environ.get("DB_HOST", 'db'),
         "PORT": "5432",
     }
 }
@@ -117,3 +118,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "main.UserModel"
 ASGI_APPLICATION = "tracker.asgi.application"
 APPEND_SLASH = False
+
+
+CELERY_TIMEZONE = "Europe/Moscow"
+CELERY_BROKER_URL = os.environ.get('REDIS_BROKER', "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get('REDIS_BACKEND', "redis://localhost:6379/0")
+CELERY_WORKER_CONCURRENCY = 4
+CELERY_TIME_LIMIT = 300
+CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_ACCEPT_CONTENT = ['pickle']

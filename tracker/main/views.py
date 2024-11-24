@@ -1,11 +1,11 @@
 import logging
 
-from django.http import HttpResponse, FileResponse
+from celery.result import AsyncResult
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
@@ -22,6 +22,7 @@ from .serializers import (
     TaskPrioritySerializer,
     RegSerializer,
     ProjectHistorySerializer,
+    ExportSerializer,
 )
 from .models import (
     Project,
@@ -47,7 +48,11 @@ from . import docs
 load_dotenv()
 
 
-@swagger_auto_schema(operation_description=docs.users_get, method="get")
+@swagger_auto_schema(
+    operation_description=docs.users_get,
+    method="get",
+    responses={200: UserSerializer()},
+)
 @api_view(["GET"])
 def users_view(request):
     if request.method == "GET":
@@ -62,16 +67,13 @@ def users_view_item(request, pk: int):
     user = get_object_or_404(UserModel, id=pk)
     if request.method == "GET":
         serializer = UserSerializer(user)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "PATCH":
         serializer = update_item(UserSerializer, request.data, user)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         user.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -80,6 +82,7 @@ def users_view_item(request, pk: int):
     request_body=RegSerializer,
 )
 @api_view(["POST"])
+@permission_classes(())
 def register_user(request):
     if request.method == "POST":
         serializer = RegSerializer(data=request.data)
@@ -99,6 +102,7 @@ def register_user(request):
             type="int",
         )
     ],
+    responses={200: ProjectHistorySerializer()},
 )
 @swagger_auto_schema(
     operation_description=docs.history_post,
@@ -113,7 +117,7 @@ def history_view(request):
         return Response(ProjectHistorySerializer(query, many=True).data)
     elif request.method == "POST":
         serializer = update_item(ProjectHistorySerializer, request.data)
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -126,16 +130,17 @@ def history_view_item(request, pk: int):
         serializer = update_item(
             ProjectHistorySerializer, request.data, history
         )
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         history.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@swagger_auto_schema(operation_description=docs.projects_get, method="get")
+@swagger_auto_schema(
+    operation_description=docs.projects_get,
+    method="get",
+    responses={200: ProjectSerializer()},
+)
 @api_view(["GET", "POST"])
 def projects_view(request):
     if request.method == "GET":
@@ -150,7 +155,7 @@ def projects_view(request):
         return Response(ProjectSerializer(query, many=True).data)
     elif request.method == "POST":
         serializer = update_item(ProjectSerializer, request.data)
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -158,19 +163,20 @@ def projects_view_item(request, pk: int):
     project = get_object_or_404(Project, id=pk)
     if request.method == "GET":
         serializer = ProjectSerializer(project)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "PATCH":
         serializer = update_item(ProjectSerializer, request.data, project)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         project.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@swagger_auto_schema(operation_description=docs.tasks_get, method="get")
+@swagger_auto_schema(
+    operation_description=docs.tasks_get,
+    method="get",
+    responses={200: TaskSerializer()},
+)
 @api_view(["GET", "POST"])
 def task_view(request):
     if request.method == "GET":
@@ -193,7 +199,7 @@ def task_view(request):
         if st := request.data.get("assignee", ""):
             send_websocket(st, "Вам назначена новая задача")
 
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -209,16 +215,17 @@ def task_view_item(request, pk: int):
         if request.data.get("status", ""):
             assignee = Task.objects.get(id=pk).assignee
             send_websocket(assignee, "Статус задачи изменился, проверьте")
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         task.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@swagger_auto_schema(operation_description=docs.roles_get, method="get")
+@swagger_auto_schema(
+    operation_description=docs.roles_get,
+    method="get",
+    responses={200: RoleSerializer()},
+)
 @swagger_auto_schema(
     operation_description=docs.roles_post,
     method="post",
@@ -228,10 +235,10 @@ def task_view_item(request, pk: int):
 def user_roles(request):
     if request.method == "GET":
         serializer = RoleSerializer(Role.objects.all(), many=True)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "POST":
         serializer = update_item(RoleSerializer, request.data)
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -242,13 +249,10 @@ def user_roles_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "PATCH":
         serializer = update_item(RoleSerializer, request.data, role)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         role.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -256,14 +260,18 @@ def user_roles_item(request, pk: int):
     method="post",
     query_serializer=CommentSerializer(),
 )
-@swagger_auto_schema(operation_description=docs.comments_get, method="get")
+@swagger_auto_schema(
+    operation_description=docs.comments_get,
+    method="get",
+    responses={200: CommentSerializer()},
+)
 @api_view(["GET", "POST"])
 def comments_view(request):
     priority = TaskComment.objects.all()
     if request.method == "GET":
         priority = filter_get_params(["task"], priority, request.GET)
         serializer = CommentSerializer(priority, many=True)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "POST":
         serializer = update_item(CommentSerializer, request.data)
         if st := Task.objects.get(id=request.data["task"]).assignee:
@@ -271,7 +279,7 @@ def comments_view(request):
                 st.id,
                 "На вашу задачу добавлен новый коментарий",
             )
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -282,20 +290,19 @@ def comments_view_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "PATCH":
         serializer = update_item(CommentSerializer, request.data, comment)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         comment.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
     operation_description=docs.user_project_assignment_post, method="post"
 )
 @swagger_auto_schema(
-    operation_description=docs.user_project_assignment_get, method="get"
+    operation_description=docs.user_project_assignment_get,
+    method="get",
+    responses={200: UserProjectAssignmentSerializer()},
 )
 @api_view(["GET", "POST"])
 def user_project_assignment(request):
@@ -303,7 +310,7 @@ def user_project_assignment(request):
     if request.method == "GET":
         upa = filter_get_params(["project"], upa, request.GET)
         serializer = UserProjectAssignmentSerializer(upa, many=True)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "POST":
         serializer = update_item(UserProjectAssignmentSerializer, request.data)
         project = Project.objects.get(id=request.data.get("project", 0))
@@ -322,7 +329,7 @@ def user_project_assignment(request):
             request.data.get("user", 0),
             f"Вы назначены в новый проект {project.title}",
         )
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -335,17 +342,16 @@ def user_project_assignment_item(request, pk: int):
         serializer = update_item(
             UserProjectAssignmentSerializer, request.data, upa
         )
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         upa.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
-    operation_description=docs.task_priority_get, method="get"
+    operation_description=docs.task_priority_get,
+    method="get",
+    responses={200: TaskPrioritySerializer()},
 )
 @swagger_auto_schema(
     operation_description=docs.task_priority_post,
@@ -357,10 +363,10 @@ def task_priority(request):
     priority = TaskPriority.objects.all()
     if request.method == "GET":
         serializer = TaskPrioritySerializer(priority, many=True)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "POST":
         serializer = update_item(TaskPrioritySerializer, request.data)
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -371,16 +377,17 @@ def task_priority_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "PATCH":
         serializer = update_item(TaskPrioritySerializer, request.data, task)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         task.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@swagger_auto_schema(operation_description=docs.task_status_get, method="get")
+@swagger_auto_schema(
+    operation_description=docs.task_status_get,
+    method="get",
+    responses={200: TaskStatusSerializer()},
+)
 @swagger_auto_schema(
     operation_description=docs.task_status_post,
     method="post",
@@ -394,7 +401,7 @@ def task_status(request):
         return Response(serializer.data)
     elif request.method == "POST":
         serializer = update_item(TaskStatusSerializer, request.data)
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
@@ -405,39 +412,43 @@ def task_status_item(request, pk: int):
         return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "PATCH":
         serializer = update_item(TaskStatusSerializer, request.data, task)
-        return Response(serializer.data, status=200)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     elif request.method == "DELETE":
         task.delete()
-        return Response(
-            {"detail": "successfully deleted"},
-            status=204,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@swagger_auto_schema(operation_description=docs.project_csv, method="get")
+@swagger_auto_schema(operation_description=docs.export, method="get")
 @api_view(["GET"])
-def get_project_csv(request, pk: int):
-    project = get_object_or_404(Project, id=pk)
-    if request.method == "GET":
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = (
-            f'attachment; filename="{project.title}.csv"'
-        )
-        response = generate_project_csv(pk, response)
-        return response
+def export(request):
+    serializer = ExportSerializer(data=request.GET)
+    serializer.is_valid(raise_exception=True)
+    project_id = serializer.validated_data["id"]
+
+    project = get_object_or_404(Project, id=project_id)
+
+    formatter = request.GET.get("formatter", "pdf")
+    if formatter == "csv":
+        task = generate_project_csv.delay(project.id)
+        return Response(task.id)
+
+    elif formatter == "pdf":
+        task = generate_pdf_file.delay(project.id, project.title)
+        return Response(task.id)
+
+    return Response(
+        {"detail": "Не поддерживаемый formatter, используйте pdf или csv"},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
-@swagger_auto_schema(operation_description=docs.project_pdf, method="get")
 @api_view(["GET"])
-def get_project_pdf(request, pk: int):
-    project = get_object_or_404(Project, id=pk)
-    if request.method == "GET":
-        response = FileResponse(
-            generate_pdf_file(project.id, project.title),
-            as_attachment=True,
-            filename=f"{project.title}.pdf",
-        )
-        return response
+def export_result(request, task_id: str):
+    task = AsyncResult(task_id)
+    if task.state == "PENDING":
+        return Response({"detail": "pending"})
+    result = task.result
+    return result
 
 
 def update_item(serializer, data, obj=None):

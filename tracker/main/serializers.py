@@ -90,3 +90,12 @@ class ProjectHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectsHistory
         fields = "__all__"
+
+
+class ExportSerializer(serializers.ModelSerializer):
+    project_id = serializers.CharField(source='id', required=True)
+
+    class Meta:
+        model = Project
+        fields = ['project_id']
+

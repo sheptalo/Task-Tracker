@@ -1,16 +1,23 @@
 import csv
 import os
+from io import BytesIO
 
+from django.http import HttpResponse
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+from celery import shared_task
+
 from .models import Task, UserModel
 from reportlab.pdfgen import canvas
-from io import BytesIO
 
 
-def generate_project_csv(project_id, response):
+@shared_task(serializer='pickle')
+def generate_project_csv(project_id: int) -> HttpResponse:
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="export.csv"'
     writer = csv.writer(response)
+
     writer.writerow(["Title", "assignee", "tester", "status", "priority"])
 
     tasks = Task.objects.all().filter(project_id=project_id)
@@ -20,20 +27,20 @@ def generate_project_csv(project_id, response):
             assignee = UserModel.objects.get(id=task.assignee.id).username
         if task.tester:
             tester = UserModel.objects.get(id=task.tester.id).username
-        writer.writerow(
-            [
-                task.title,
-                assignee,
-                tester,
-                task.status,
-                task.priority,
-            ]
-        )
 
+        writer.writerow([
+            task.title,
+            assignee,
+            tester,
+            task.status,
+            task.priority,
+        ])
+        
     return response
 
 
-def generate_pdf_file(project_id, project_name):
+@shared_task(serializer='pickle')
+def generate_pdf_file(project_id: int, project_name: str) -> HttpResponse:
     pdfmetrics.registerFont(
         TTFont("font", os.path.join(os.getcwd(), "font.ttf"))
     )
@@ -59,8 +66,17 @@ def generate_pdf_file(project_id, project_name):
         p.drawString(100, y - 60, f"Status: {task.status}")
         p.drawString(100, y - 80, f"Priority: {task.priority}")
         y -= 150
+        if y <= 50:
+            p.showPage()
+            p.setFont("font", 12)
+            y = 800
     p.showPage()
     p.save()
 
     buffer.seek(0)
-    return buffer
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="export.pdf"'
+    response.write(buffer.getvalue())
+
+    return response
