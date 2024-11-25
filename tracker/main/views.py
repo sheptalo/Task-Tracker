@@ -5,10 +5,12 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+)
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-
 from dotenv import load_dotenv
 
 from .serializers import (
@@ -82,7 +84,7 @@ def users_view_item(request, pk: int):
     request_body=RegSerializer,
 )
 @api_view(["POST"])
-@permission_classes(())
+@authentication_classes(())
 def register_user(request):
     if request.method == "POST":
         serializer = RegSerializer(data=request.data)
@@ -442,6 +444,7 @@ def export(request):
     )
 
 
+@swagger_auto_schema(operation_description=docs.export_result, method="get")
 @api_view(["GET"])
 def export_result(request, task_id: str):
     task = AsyncResult(task_id)

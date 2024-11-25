@@ -12,11 +12,11 @@ from .models import Task, UserModel
 from reportlab.pdfgen import canvas
 
 
-@shared_task(serializer='pickle')
+@shared_task(serializer="pickle")
 def generate_project_csv(project_id: int) -> HttpResponse:
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="export.csv"'
-    writer = csv.writer(response)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="export.csv"'
+    writer = csv.writer(response)  # запись csv в response
 
     writer.writerow(["Title", "assignee", "tester", "status", "priority"])
 
@@ -28,18 +28,20 @@ def generate_project_csv(project_id: int) -> HttpResponse:
         if task.tester:
             tester = UserModel.objects.get(id=task.tester.id).username
 
-        writer.writerow([
-            task.title,
-            assignee,
-            tester,
-            task.status,
-            task.priority,
-        ])
-        
+        writer.writerow(
+            [
+                task.title,
+                assignee,
+                tester,
+                task.status,
+                task.priority,
+            ]
+        )
+
     return response
 
 
-@shared_task(serializer='pickle')
+@shared_task(serializer="pickle")
 def generate_pdf_file(project_id: int, project_name: str) -> HttpResponse:
     pdfmetrics.registerFont(
         TTFont("font", os.path.join(os.getcwd(), "font.ttf"))
@@ -75,8 +77,8 @@ def generate_pdf_file(project_id: int, project_name: str) -> HttpResponse:
 
     buffer.seek(0)
 
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="export.pdf"'
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="export.pdf"'
     response.write(buffer.getvalue())
 
     return response
